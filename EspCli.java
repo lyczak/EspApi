@@ -7,7 +7,7 @@ public class EspCli {
     private EspApi api;
 
     private static final int MAX_GRADE_LENGTH = 7;
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yy");
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd");
 
     private EspCli(String username, String password) {
         api = EspApi.getInstance();
@@ -51,18 +51,21 @@ public class EspCli {
 
     private void printAssignments(EspClass espClass) {
         int longestAssignment = api.getLongestAssignment();
-        String format = "│ %-8s │ %-" + longestAssignment + "s │ %-6s │ %-6s │ %-6s%% │%n";
-        System.out.println("┌──────────┬─" + getBars(longestAssignment) + "─┬────────┬────────┬─────────┐");
-        System.out.printf(format, "Due Date", "Assignment", "Score", "Total", "");
-        System.out.println("├──────────┼─" + getBars(longestAssignment) + "─┼────────┼────────┼─────────┤");
+        String gradeString = (espClass.getAverage() == null) ? "N/G" :
+                String.format("%.2f", espClass.getAverage());
+        String format = "│ %-5s │ %-" + longestAssignment + "s │ %-6s │ %-6s │ %-6s │ %-6s%% │%n";
+        System.out.println("┌───────┬─" + getBars(longestAssignment) + "─┬────────┬────────┬────────┬─────────┐");
+        System.out.printf(format, "Due", "Assignment", "Score", "Total", "Avg", gradeString);
+        System.out.println("├───────┼─" + getBars(longestAssignment) + "─┼────────┼────────┼────────┼─────────┤");
         for(EspAssignment assignment : espClass.getAssignments()) {
             String dueDate = DATE_FORMAT.format(assignment.getDateDue());
             String score = getGradeValue(assignment.getScore());
             String totalPoints = getGradeValue(assignment.getTotalPoints());
+            String average = getGradeValue(assignment.getAverageScore());
             String percentage = getGradeValue(assignment.getPercentage());
-            System.out.printf(format, dueDate, assignment.getAssigment(), score, totalPoints, percentage);;
+            System.out.printf(format, dueDate, assignment.getAssigment(), score, totalPoints, average, percentage);;
         }
-        System.out.println("└──────────┴─" + getBars(longestAssignment) + "─┴────────┴────────┴─────────┘");
+        System.out.println("└───────┴─" + getBars(longestAssignment) + "─┴────────┴────────┴────────┴─────────┘");
     }
 
     private void printClassGrades(boolean printAssignments) {

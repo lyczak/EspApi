@@ -58,7 +58,7 @@ public class EspApi {
         classes = new ArrayList<>(10);
 
         Pattern gradePattern = Pattern.compile("\\d+.\\d{2}");
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
         Matcher matcher;
         ArrayList<EspAssignment> assignments;
         String className, classId, gradeString;
