@@ -1,147 +1,134 @@
-import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
+import javax.net.ssl.HttpsURLConnection;
+import java.net.URL;
+import java.util.Map;
+import java.util.List;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.text.SimpleDateFormat;
-import java.text.ParseException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.lang.InterruptedException;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 public class EspConnection {
-    private static EspConnection instance;
+    private final String HOST;
+    private final String BASE_URL;
 
-    private static final int CLASS_PREFIX_LENGTH = 9;
-    private static final int CLASS_ID_LENGTH = 4;
+    static final String COOKIES_HEADER = "Set-Cookie";
 
-    private final String SCRIPT_DIRECTORY;
-    private String BASE_URL = "https://hac.pvsd.org/HomeAccess";
-    private String username;
-    private String password;
-    private Elements classElements;
+    private String cookies;
 
-    private ArrayList<EspClass> classes;
-    private int longestAssignment = 0;
-
-    public static EspConnection getInstance() {
-        if(instance == null) instance = new EspConnection();
-        return instance;
+    public EspConnection(String host) {
+        HOST = host;
+        BASE_URL = "https://" + HOST;
     }
 
-    private EspConnection() {
-        this.SCRIPT_DIRECTORY = this.getClass().getProtectionDomain()
-                .getCodeSource().getLocation().toString().substring(5);
+    public EspConnection() {
+        this("hac.pvsd.org");
     }
 
-    public ArrayList<EspClass> getClasses() {
-        return this.classes;
-    }
-
-    public int getLongestAssignment() {
-        return longestAssignment;
-    }
-
-    public void logOn(String username, String password) throws IOException, InterruptedException {
-        this.username = username;
-        this.password = password;
-        Process loginProcess = new ProcessBuilder(SCRIPT_DIRECTORY + "LogOn.sh",
-                BASE_URL, username, password).start();
-        loginProcess.waitFor();
-    }
-
-    public void fetchClasses() throws IOException {
-        Process assignmentsProcess = new ProcessBuilder(
-                SCRIPT_DIRECTORY + "Assignments.sh", BASE_URL).start();
-
-        BufferedReader reader =
-                new BufferedReader(new InputStreamReader(
-                assignmentsProcess.getInputStream()));
-        StringBuilder builder = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            builder.append(line);
-            builder.append(System.getProperty("line.separator"));
+    private static boolean isRedirect(int status) {
+        boolean redirect = false;
+        if(status != HttpsURLConnection.HTTP_OK) {
+            if(status == HttpsURLConnection.HTTP_MOVED_TEMP
+                    || status == HttpsURLConnection.HTTP_MOVED_PERM
+                    || status == HttpsURLConnection.HTTP_SEE_OTHER)
+                redirect = true;
         }
-
-        String html = builder.toString();
-        Document doc = Jsoup.parse(html);
-        this.classElements = doc.getElementsByClass("AssignmentClass");
+        return redirect;
     }
 
-    public void parseClasses() {
-        classes = new ArrayList<>(10);
+    private static String readHttpInputStream(InputStream is) throws IOException {
+        BufferedReader in = new BufferedReader(
+                              new InputStreamReader(is, "utf-8"));
+	    String inputLine;
+	    StringBuffer response = new StringBuffer();
 
-        Pattern gradePattern = Pattern.compile("\\d+.\\d{2}");
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        Matcher matcher;
-        ArrayList<EspAssignment> assignments;
-        String className, classId, gradeString;
-        Float classGrade;
+	    while ((inputLine = in.readLine()) != null) {
+		    response.append(inputLine);
+	    }
+	    in.close();
+        return response.toString();
+    }
 
-        for(Element classElement : this.classElements) {
-            className = classElement.select(
-                    "a.sg-header-heading").first().text();
-            classId = className.substring(0, CLASS_ID_LENGTH);
-            className = className.substring(CLASS_PREFIX_LENGTH);
+    public String logOn(String username, String password) throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection)
+                new URL(BASE_URL + "/HomeAccess/Account/LogOn?ReturnUrl=%2fHomeAccess%2fClasses%2fClasswork").openConnection();
+        byte[] data = String.format(
+        "Database=10&LogOnDetails.UserName=%s&LogOnDetails.Password=%s", username, password).getBytes("UTF-8");
+        //conn.setReadTimeout(5000);
+        conn.setDoInput(true);
+        conn.setDoOutput(true);
+        conn.setInstanceFollowRedirects(false);
+        conn.setRequestMethod("POST");
+        conn.addRequestProperty("Origin", BASE_URL);
+        conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
+        conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
+        conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+        conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        conn.addRequestProperty("Content-Length", String.valueOf(data.length));
+        conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        conn.addRequestProperty("Cache-Control", "max-age=0");
+        conn.addRequestProperty("Referer", BASE_URL + "/HomeAccess/Account/LogOn");
+        conn.addRequestProperty("Connection", "keep-alive");
 
-            gradeString = classElement.select(
-                   "span[id^=plnMain_rptAssigmnetsByCourse_lblHdrAverage_]")
-                   .first().text();
-            matcher = gradePattern.matcher(gradeString);
-            classGrade = matcher.find() ?
-                    Float.parseFloat(gradeString.substring(
-                    matcher.start(), matcher.end())) : null;
+        DataOutputStream wr = new DataOutputStream (conn.getOutputStream());
+        wr.write(data);
+        wr.flush();
+        wr.close();
 
-            Date dateDue, dateAssigned;
-            String assignmentName, category;
-            Float[] stats;
-            String percentageString;
-            Float percentage;
-            Elements assignmentElements = classElement.select(
-                    "table[id^=plnMain_rptAssigmnetsByCourse_dgCourseAssignments_] > tbody > tr.sg-asp-table-data-row");
-            Elements cols;
-            assignments = new ArrayList<>(20);
-            for(Element assignmentElement : assignmentElements) {
-                cols = assignmentElement.select("td");
-                try {
-                    dateDue = dateFormat.parse(cols.get(0).text());
-                } catch(ParseException e) {
-                    dateDue = null;
-                }
-                try {
-                    dateAssigned = dateFormat.parse(cols.get(1).text());
-                } catch(ParseException e) {
-                    dateAssigned = null;
-                }
-                assignmentName = cols.get(2).text();
-                assignmentName = assignmentName.substring(0, (assignmentName.length() - 2));
+        Map<String, List<String>> headerFields = conn.getHeaderFields();
+        List<String> cookiesHeader = headerFields.get(COOKIES_HEADER);
+        StringBuilder cookiesBuilder = new StringBuilder();
 
-                if(assignmentName.length() > longestAssignment) longestAssignment = assignmentName.length();
-
-                category = cols.get(3).text();
-                stats = new Float[6];
-                for(int i = 0; i < stats.length; i++) {
-                    try {
-                        stats[i] = Float.parseFloat(cols.get(i + 4).text());
-                    } catch(NumberFormatException e) {
-                        stats[i] = null;
-                    }
-                }
-                percentageString = cols.get(10).text();
-                try {
-                    percentage = Float.parseFloat(percentageString.substring(0, percentageString.length() - 1));
-                } catch(StringIndexOutOfBoundsException | NumberFormatException e) {
-                    percentage = null;
-                }
-                assignments.add(new EspAssignment(dateDue, dateAssigned, assignmentName, category, stats, percentage));
+        if (cookiesHeader != null) {
+            for (String cookie : cookiesHeader) {
+                if(!cookie.contains("=;"))
+                    cookiesBuilder.append(cookie.split(";")[0] + "; ");
             }
-
-            classes.add(new EspClass(className, classId, classGrade, assignments));
         }
+        cookies = cookiesBuilder.toString();
+        cookies = cookies.substring(0, cookies.length() - 2);
+
+        if(isRedirect(conn.getResponseCode())) {
+            String newUrl = conn.getHeaderField("Location");
+
+            conn = (HttpsURLConnection) new URL(BASE_URL + newUrl).openConnection();
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setInstanceFollowRedirects(true);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Host", HOST);
+            conn.setRequestProperty("Cookie", cookies);
+
+            conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+            conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
+            conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
+            conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+            conn.addRequestProperty("Referer", BASE_URL + "/HomeAccess/Account/LogOn?ReturnUrl=%2fHomeAccess%2fClasses%2fClasswork");
+            conn.addRequestProperty("Cache-Control", "max-age=0");
+            conn.addRequestProperty("Connection", "keep-alive");
+        }
+
+        return readHttpInputStream(conn.getInputStream());
+    }
+
+    public String getAssignments() throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection)
+                new URL(BASE_URL + "/HomeAccess/Content/Student/Assignments.aspx").openConnection();
+        conn.setDoInput(true);
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Host", HOST);
+        conn.setRequestProperty("Cookie", cookies);
+        conn.setRequestProperty("Referer", BASE_URL + "/HomeAccess/Classes/Classwork");
+        conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
+        conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
+        conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+        conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        conn.addRequestProperty("Connection", "keep-alive");
+
+	    return readHttpInputStream(conn.getInputStream());
     }
 }

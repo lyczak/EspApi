@@ -4,22 +4,19 @@ import java.text.SimpleDateFormat;
 import java.lang.InterruptedException;
 
 public class EspCli {
-    private EspConnection conn;
+    private EspApi api;
 
     private static final int MAX_GRADE_LENGTH = 7;
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yy");
 
     private EspCli(String username, String password) {
-        conn = EspConnection.getInstance();
+        api = EspApi.getInstance();
         try {
-            System.out.print("Requesting AuthToken... ");
-            conn.logOn(username, password);
-            System.out.print("Success\nFetching Classes... ");
-            conn.fetchClasses();
-            System.out.print("Success\nParsing Classes... ");
-            conn.parseClasses();
-            System.out.println("Success");
-        } catch(IOException | InterruptedException e) {
+            System.out.print("Loading... ");
+            api.fetchClasses(username, password);
+            api.parseClasses();
+            System.out.println("Done\n");
+        } catch(IOException e) {
             System.out.println();
             e.printStackTrace();
             System.exit(-1);
@@ -53,7 +50,7 @@ public class EspCli {
     }
 
     private void printAssignments(EspClass espClass) {
-        int longestAssignment = conn.getLongestAssignment();
+        int longestAssignment = api.getLongestAssignment();
         String format = "│ %-8s │ %-" + longestAssignment + "s │ %-6s │ %-6s │ %-6s%% │%n";
         System.out.println("┌──────────┬─" + getBars(longestAssignment) + "─┬────────┬────────┬─────────┐");
         System.out.printf(format, "Due Date", "Assignment", "Score", "Total", "");
@@ -69,7 +66,7 @@ public class EspCli {
     }
 
     private void printClassGrades(boolean printAssignments) {
-        for(EspClass espClass : conn.getClasses()) {
+        for(EspClass espClass : api.getClasses()) {
             String gradeString = (espClass.getAverage() == null) ? "N/G" :
                     String.format("%.2f%%", espClass.getAverage());
             System.out.printf("%s%s %s\n", gradeString,
