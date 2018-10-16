@@ -5,12 +5,14 @@ public class EspClass {
     private String classId;
     private Float average;
     private ArrayList<EspAssignment> assignments;
+    private ArrayList<EspAssignmentCategory> assignmentCategories;
 
-    public EspClass(String className, String classId, Float average, ArrayList<EspAssignment> assignments) {
+    public EspClass(String className, String classId, Float average, ArrayList<EspAssignment> assignments, ArrayList<EspAssignmentCategory> assignmentCategories) {
         this.className = className;
         this.classId = classId;
         this.average = average;
         this.assignments = assignments;
+        this.assignmentCategories = assignmentCategories;
     }
 
     public String getClassName() {
@@ -43,5 +45,13 @@ public class EspClass {
 
     public void setAssignments(ArrayList<EspAssignment> assignments) {
         this.assignments = assignments;
+    }
+
+    public ArrayList<EspAssignmentCategory> getAssignmentCategories() {
+        return this.assignmentCategories;
+    }
+
+    public void setAssignmentCategories(ArrayList<EspAssignmentCategory> assignmentCategories) {
+        this.assignmentCategories = assignmentCategories;
     }
 }

@@ -10,13 +10,13 @@ public class EspCli {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd");
 
     private EspCli(String username, String password) {
-        api = EspApi.getInstance();
+        api = new EspApi();
         try {
             System.out.print("Loading... ");
             api.fetchClasses(username, password);
             api.parseClasses();
             System.out.println("Done\n");
-        } catch(IOException e) {
+        } catch(Exception e) {
             System.out.println();
             e.printStackTrace();
             System.exit(-1);
@@ -63,7 +63,7 @@ public class EspCli {
             String totalPoints = getGradeValue(assignment.getTotalPoints());
             String average = getGradeValue(assignment.getAverageScore());
             String percentage = getGradeValue(assignment.getPercentage());
-            System.out.printf(format, dueDate, assignment.getAssigment(), score, totalPoints, average, percentage);;
+            System.out.printf(format, dueDate, assignment.getAssignment(), score, totalPoints, average, percentage);;
         }
         System.out.println("└───────┴─" + getBars(longestAssignment) + "─┴────────┴────────┴────────┴─────────┘");
     }

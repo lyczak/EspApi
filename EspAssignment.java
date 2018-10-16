@@ -1,9 +1,11 @@
 import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 public class EspAssignment {
-    private Date dateDue;
-    private Date dateAssigned;
-    private String assigment;
+    private String dateDue;
+    private String dateAssigned;
+    private String assignment;
     private String category;
     private Float score;
     private Float totalPoints;
@@ -14,41 +16,42 @@ public class EspAssignment {
     private Float percentage;
 
     public EspAssignment(Date dateDue, Date dateAssigned, String assignment, String category, Float[] stats, Float percentage) {
-            this.dateDue = dateDue;
-            this.dateAssigned = dateAssigned;
-            this.assigment = assignment;
+            final DateFormat format = new SimpleDateFormat("EEE, MMM d");
+            this.dateDue = (dateDue == null) ? "" : format.format(dateDue);
+            this.dateAssigned = (dateAssigned == null) ? "" : format.format(dateAssigned);
+            this.assignment = assignment;
             this.category = category;
             this.score = stats[0];
             this.totalPoints = stats[1];
             this.weight = stats[2];
             this.weightedScore = stats[3];
             this.weightedTotalPoints = stats[4];
-            this.averageScore = stats[5];
-            this.percentage = percentage;
+            //this.averageScore = stats[5];
+            this.percentage = (this.score == null) ? null : percentage;
     }
 
-    public Date getDateDue() {
+    public String getDateDue() {
         return this.dateDue;
     }
 
-    public void setDateDue(Date dateDue) {
+    public void setDateDue(String dateDue) {
         this.dateDue = dateDue;
     }
 
-    public Date getDateAssigned() {
+    public String getDateAssigned() {
         return this.dateAssigned;
     }
 
-    public void setDateAssigned(Date dateAssigned) {
+    public void setDateAssigned(String dateAssigned) {
         this.dateAssigned = dateAssigned;
     }
 
-    public String getAssigment() {
-        return this.assigment;
+    public String getAssignment() {
+        return this.assignment;
     }
 
-    public void setAssigment(String assigment) {
-        this.assigment = assigment;
+    public void setAssignment(String assignment) {
+        this.assignment = assignment;
     }
 
     public String getCategory() {
