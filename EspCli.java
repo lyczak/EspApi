@@ -84,6 +84,7 @@ public class EspCli {
         String password = args[1];
         String command = args[2];
         EspCli cli = new EspCli(username, password);
+
         switch(command) {
             case "classes":
                 cli.printClassGrades(false);

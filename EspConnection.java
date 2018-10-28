@@ -131,4 +131,21 @@ public class EspConnection {
 
 	    return readHttpInputStream(conn.getInputStream());
     }
+
+    public String getTranscript() throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection)
+                new URL(BASE_URL + "/HomeAccess/Content/Student/Transcript.aspx").openConnection();
+        conn.setDoInput(true);
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Host", HOST);
+        conn.setRequestProperty("Cookie", cookies);
+        //conn.setRequestProperty("Referer", BASE_URL + "/HomeAccess/Classes/Classwork");
+        conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
+        conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
+        conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+        conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        conn.addRequestProperty("Connection", "keep-alive");
+
+	    return readHttpInputStream(conn.getInputStream());
+    }
 }

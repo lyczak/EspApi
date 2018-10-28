@@ -17,13 +17,20 @@ public class EspApi {
     EspConnection conn;
     private String username;
     private String password;
-    private Elements classElements;
 
+    private Elements tElements;
+    EspTranscript transcript;
+
+    private Elements classElements;
     private ArrayList<EspClass> classes;
     private int longestAssignment = 0;
 
     public EspApi() {
         conn = new EspConnection();
+    }
+
+    public EspTranscript getTranscript() {
+        return this.transcript;
     }
 
     public ArrayList<EspClass> getClasses() {
@@ -179,7 +186,6 @@ public class EspApi {
                             categoryPoints = null;
                         }
                     }
-                    System.out.println(category);
                     assignmentCategories.add(new EspAssignmentCategory(category, points, maximumPoints, percent, categoryWeight, categoryPoints));
                 } catch(NullPointerException | IndexOutOfBoundsException e) {
                     throw new EspException("Category col size mismatch expected 4 or 6, got: " + cols.size(), "CatColSize");
@@ -189,6 +195,65 @@ public class EspApi {
             // END parsing class assignment categories.
 
             classes.add(new EspClass(className, classId, classGrade, assignments, assignmentCategories));
+        }
+    }
+
+    public void fetchTranscript(String username, String password) throws IOException, EspException {
+        this.username = username;
+        this.password = password;
+
+        conn.logOn(username, password);
+        String html = conn.getTranscript();
+        Document doc = Jsoup.parse(html);
+        this.tElements = doc.getElementsByClass("sg-transcript-group");
+
+        Float tGpa;
+        Integer tRankNum, tRankDenom;
+        ArrayList<EspTranscriptGroup> tGroups = new ArrayList<>(4);
+
+        try {
+            tGpa = Float.parseFloat(doc.getElementById("plnMain_rpTranscriptGroup_lblGPACum1").text());
+            String rankString = doc.getElementById("plnMain_rpTranscriptGroup_lblGPARank1").text();
+            int slashIndex = rankString.indexOf('/');
+            tRankNum = Integer.parseInt(rankString.substring(0, slashIndex - 1));
+            tRankDenom = Integer.parseInt(rankString.substring(slashIndex + 2));
+        } catch(Exception e) {
+            throw new EspException("Error parsing GPA/Rank.", "TsGpaRank");
+        }
+        this.transcript = new EspTranscript(tGpa, tRankNum, tRankDenom, tGroups);
+    }
+
+    public void parseTranscript() throws EspException {
+        for(Element te : this.tElements) {
+            String year = te.selectFirst("span[id^=plnMain_rpTranscriptGroup_lblYearValue_]").text();
+            Integer grade = Integer.parseInt(te.selectFirst(
+                "span[id^=plnMain_rpTranscriptGroup_lblGradeValue_]").text());
+            String building = te.selectFirst("span[id^=plnMain_rpTranscriptGroup_lblBuildingValue_]").text();
+
+            ArrayList<EspTranscriptCourse> tCourses = new ArrayList<>(10);
+            Elements tClassElements = te.select(
+                "table[id^=plnMain_rpTranscriptGroup_dgCourses_] > tbody > tr.sg-asp-table-data-row");
+            for(Element tClassElement : tClassElements) {
+                Elements cs = tClassElement.children();
+                String id = cs.get(0).text();
+                String desc = cs.get(1).text();
+                Integer pct = null;
+                try {
+                    pct = Integer.parseInt(cs.get(2).text());
+                } catch(NumberFormatException e) {}
+                String lg = cs.get(3).text();
+                Float cdt = Float.parseFloat(cs.get(4).text());
+                tCourses.add(new EspTranscriptCourse(id, desc, pct, lg, cdt));
+            }
+
+            Elements brCels = te.select("table[style=float:right] > tbody > tr > td");
+            Float gpa = null;
+            try {
+                gpa = Float.parseFloat(brCels.get(1).text());
+            } catch(NumberFormatException e) {}
+            Float tCd = Float.parseFloat(brCels.get(3).text());
+
+            this.transcript.getGroups().add(new EspTranscriptGroup(year, grade, building, tCourses, gpa, tCd));
         }
     }
 }
