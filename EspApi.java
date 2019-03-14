@@ -2,6 +2,7 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
@@ -196,6 +197,63 @@ public class EspApi {
 
             classes.add(new EspClass(className, classId, classGrade, assignments, assignmentCategories));
         }
+    }
+
+    public EspStudent fetchAndParseDemographic(String username, String password) throws IOException {
+        this.username = username;
+        this.password = password;
+
+        conn.logOn(username, password);
+        String html = conn.getDemographic();
+        Document d = Jsoup.parse(html);
+
+        EspStudent s = new EspStudent();
+        s.setName(d.getElementById("plnMain_lblRegStudentName").text());
+        try {
+            s.setBirthDate(new SimpleDateFormat("MM/dd/yyyy").parse(
+                    d.getElementById("plnMain_lblBirthDate").text()));
+        } catch (ParseException e) {}
+        s.setHouse(d.getElementById("plnMain_lblHouseTeam").text());
+        s.setCounselor(d.getElementById("plnMain_lblCounselor").child(0).text());
+        s.setBuilding(d.getElementById("plnMain_lblBuildingName").text());
+        s.setGender(d.getElementById("plnMain_lblGender").text());
+        s.setCalendar(d.getElementById("plnMain_lblCalendar").text());
+        s.setHomeroom(d.getElementById("plnMain_lblHomeroom").text());
+        s.setGrade(Integer.parseInt(d.getElementById("plnMain_lblGrade").text()));
+        s.setLanguage(d.getElementById("plnMain_lblLanguage").text());
+        s.setHomeroomTeacher(d.getElementById("plnMain_lblHomeroomTeacher").child(0).text());
+
+        List<EspTransportation> transportation = new ArrayList<>(2);
+        Elements tpElems = d.select("[id^=plnMain_dgTrans] > tbody > .sg-asp-table-data-row");
+        for (Element te : tpElems) {
+            EspTransportation t = new EspTransportation();
+            t.setDays(te.child(0).text());
+            t.setDescription(te.child(1).text());
+            t.setBusNumber(Integer.parseInt(te.child(2).text()));
+            t.setStopTime(te.child(5).text());
+            t.setStopDescription(te.child(6).text());
+            transportation.add(t);
+        }
+
+        List<EspContact> contacts = new ArrayList<>();
+        Elements cElems = d.select("#tblContactHeader td");
+        for (Element ce : cElems) {
+            EspContact c = new EspContact();
+            c.setType(ce.child(0).child(0).text());
+            ce.child(0).remove();
+            String[] cl = ce.html().split("<br>");
+            try {
+                c.setName(cl[0]);
+                c.setAddress(cl[1] + "\n" + cl[2]);
+                c.setEmail(cl[3].substring(7));
+                c.setHomePhone(cl[4].substring(12));
+            } catch (IndexOutOfBoundsException e) {}
+            contacts.add(c);
+        }
+
+        s.setTransportation(transportation);
+        s.setContacts(contacts);
+        return s;
     }
 
     public void fetchTranscript(String username, String password) throws IOException, EspException {

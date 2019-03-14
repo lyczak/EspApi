@@ -25,7 +25,7 @@ public class EspCli {
 
     public static void printHelp() {
         throw new IllegalArgumentException(
-                "Usage: java EspCli <username> <password> (classes)");
+                "Usage: java EspCli <username> <password> (classes|assignments)");
     }
 
     private static String getGradeSpacing(int gradeLength) {

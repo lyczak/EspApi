@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class EspConnection {
+    private final String USER_AGENT = "Mozilla/5.0 Gecko Firefox";
     private final String HOST;
     private final String BASE_URL;
 
@@ -66,7 +67,7 @@ public class EspConnection {
         conn.addRequestProperty("Origin", BASE_URL);
         conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
         conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
-        conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+        conn.addRequestProperty("User-Agent", USER_AGENT);
         conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
         conn.addRequestProperty("Content-Length", String.valueOf(data.length));
         conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
@@ -106,7 +107,7 @@ public class EspConnection {
             conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
             conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
             conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
-            conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+            conn.addRequestProperty("User-Agent", USER_AGENT);
             conn.addRequestProperty("Referer", BASE_URL + "/HomeAccess/Account/LogOn?ReturnUrl=%2fHomeAccess%2fClasses%2fClasswork");
             conn.addRequestProperty("Cache-Control", "max-age=0");
             conn.addRequestProperty("Connection", "keep-alive");
@@ -125,7 +126,7 @@ public class EspConnection {
         conn.setRequestProperty("Referer", BASE_URL + "/HomeAccess/Classes/Classwork");
         conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
         conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
-        conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+        conn.addRequestProperty("User-Agent", USER_AGENT);
         conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         conn.addRequestProperty("Connection", "keep-alive");
 
@@ -142,7 +143,24 @@ public class EspConnection {
         //conn.setRequestProperty("Referer", BASE_URL + "/HomeAccess/Classes/Classwork");
         conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
         conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
-        conn.addRequestProperty("User-Agent", "Mozilla/5.0 Gecko Firefox");
+        conn.addRequestProperty("User-Agent", USER_AGENT);
+        conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        conn.addRequestProperty("Connection", "keep-alive");
+
+	    return readHttpInputStream(conn.getInputStream());
+    }
+
+    public String getDemographic() throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection)
+                new URL(BASE_URL + "/HomeAccess/Content/Student/Registration.aspx").openConnection();
+        conn.setDoInput(true);
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Host", HOST);
+        conn.setRequestProperty("Cookie", cookies);
+        //conn.setRequestProperty("Referer", BASE_URL + "/HomeAccess/Registration/Demographic");
+        conn.addRequestProperty("Accept-Language", "en-US,en;q=0.9");
+        conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
+        conn.addRequestProperty("User-Agent", USER_AGENT);
         conn.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         conn.addRequestProperty("Connection", "keep-alive");
 
